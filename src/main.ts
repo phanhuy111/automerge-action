@@ -1,16 +1,40 @@
 import * as core from '@actions/core'
-import {wait} from './wait'
+import {getOctokit} from '@actions/github'
+// eslint-disable-next-line sort-imports
+import * as PR from './pull_request'
 
 async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
-    core.debug(`Waiting ${ms} milliseconds ...`) // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
+    // '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'
+    const ownerGit = 'onpointvn'
+    const repoGit = 'octosells'
+    const octokit = getOctokit(core.getInput('github_token'))
+    const branchPrefix = core.getInput('branch_prefix')
 
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
+    const prNumber = PR.getPrNumber()
+    if (!prNumber) {
+      throw new Error('Can not get current PR number')
+    }
 
-    core.setOutput('time', new Date().toTimeString())
+    const pr = await PR.get(octokit, prNumber)
+
+    const listPullRequest = await octokit.rest.pulls.list({
+      owner: ownerGit,
+      repo: repoGit,
+      head: `onpointvn:${pr.head.ref}`
+    })
+
+    if (branchPrefix !== '*' && !pr.head.ref.startsWith(branchPrefix)) {
+      return
+    }
+
+    for (const pullRequest of listPullRequest.data) {
+      await PR.merge(octokit, {
+        owner: ownerGit,
+        repo: repoGit,
+        number: pullRequest.number
+      })
+    }
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
