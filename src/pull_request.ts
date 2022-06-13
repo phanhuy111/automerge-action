@@ -3,13 +3,12 @@ import * as core from '@actions/core'
 import {context} from '@actions/github'
 // eslint-disable-next-line sort-imports
 import type {GitHub} from '@actions/github/lib/utils'
-
 // eslint-disable-next-line sort-imports
 import {
   CreatePullRequestRequest,
   CreatePullRequestResponse,
   GetPullRequestResponse,
-  MergePullRequestRequest
+  MergeRequest
 } from './types'
 
 export async function get(
@@ -67,12 +66,15 @@ export async function create(
 
 export async function merge(
   octokit: InstanceType<typeof GitHub>,
-  pr: MergePullRequestRequest
-): Promise<void> {
-  await octokit.rest.pulls.merge({
+  pr: MergeRequest
+): Promise<boolean> {
+  const response = await octokit.rest.pulls.merge({
     ...context.repo,
     pull_number: pr.number
   })
+
+  const {merged} = response.data
+  return merged
 }
 
 export function getPrNumber(): number | undefined {

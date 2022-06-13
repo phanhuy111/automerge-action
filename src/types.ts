@@ -24,8 +24,14 @@ export type CreatePullRequestResponse = {
   url: string
 }
 
-export type MergePullRequestRequest = {
+export type MergeRequest = {
   owner: string
   repo: string
   number: number
+}
+
+export type MergeResponse = {
+  sha: string
+  merged: boolean
+  message: number
 }

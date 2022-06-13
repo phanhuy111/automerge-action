@@ -1,13 +1,13 @@
 import * as core from '@actions/core'
-import {getOctokit} from '@actions/github'
+import {context, getOctokit} from '@actions/github'
 // eslint-disable-next-line sort-imports
 import * as PR from './pull_request'
 
 async function run(): Promise<void> {
   try {
     // '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'
-    const ownerGit = 'onpointvn'
-    const repoGit = 'octosells'
+    // const ownerGit = 'onpointvn'
+    // const repoGit = 'octosells'
     const octokit = getOctokit(core.getInput('github_token'))
     const branchPrefix = core.getInput('branch_prefix')
 
@@ -19,8 +19,7 @@ async function run(): Promise<void> {
     const pr = await PR.get(octokit, prNumber)
 
     const listPullRequest = await octokit.rest.pulls.list({
-      owner: ownerGit,
-      repo: repoGit,
+      ...context.repo,
       head: `onpointvn:${pr.head.ref}`
     })
 
@@ -29,11 +28,18 @@ async function run(): Promise<void> {
     }
 
     for (const pullRequest of listPullRequest.data) {
-      await PR.merge(octokit, {
-        owner: ownerGit,
-        repo: repoGit,
+      const res = await PR.merge(octokit, {
+        ...context.repo,
         number: pullRequest.number
       })
+
+      if (!res) {
+        await octokit.rest.issues.addLabels({
+          ...context.repo,
+          issue_number: prNumber,
+          labels: ['conflict-merged']
+        })
+      }
     }
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
