@@ -5,11 +5,7 @@ import * as PR from './pull_request'
 
 async function run(): Promise<void> {
   try {
-    // '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'
-    // const ownerGit = 'onpointvn'
-    // const repoGit = 'octosells'
     const octokit = getOctokit(core.getInput('github_token'))
-    const branchPrefix = core.getInput('branch_prefix')
 
     const prNumber = PR.getPrNumber()
     if (!prNumber) {
@@ -20,12 +16,9 @@ async function run(): Promise<void> {
 
     const listPullRequest = await octokit.rest.pulls.list({
       ...context.repo,
-      head: `onpointvn:${pr.head.ref}`
+      state: 'open',
+      head: `${context.repo.owner}:${pr.head.ref}`
     })
-
-    if (branchPrefix !== '*' && !pr.head.ref.startsWith(branchPrefix)) {
-      return
-    }
 
     for (const pullRequest of listPullRequest.data) {
       const res = await PR.merge(octokit, {
